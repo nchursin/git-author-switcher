@@ -44,6 +44,8 @@ class GitAuthorSwitcher(rumps.App):
         if not self.is_user_config_valid(user_config):
             return None
         self.config_data.append(user_config)
+        with open(CONFIG_FILE_NAME, "w") as outfile:
+            json.dump(self.config_data, outfile)
         return user_config
     
     def is_user_config_valid(self, user_config):
