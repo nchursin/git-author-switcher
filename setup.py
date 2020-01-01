@@ -8,7 +8,7 @@ Usage:
 from setuptools import setup
 
 APP = ['GitAuthorSwitcher.py']
-DATA_FILES = []
+DATA_FILES = [ "userConfig.json" ]
 OPTIONS = {
     'argv_emulation': True,
     'plist': {
