@@ -7,6 +7,9 @@ rumps.debug_mode = True
 
 CONFIG_FILE_NAME = "userConfig.json"
 
+ADD_USER = "Add User"
+SEPARATOR = "----"
+
 class GitAuthorSwitcher(rumps.App):
     all_emails = []
     selected_emails = []
@@ -17,7 +20,11 @@ class GitAuthorSwitcher(rumps.App):
         self.form_menu()
             
     def form_menu(self):
-        self.menu = ["Add User"]
+        self.menu = [ADD_USER]
+        separator = rumps.MenuItem(SEPARATOR)
+        separator.state = -1
+        self.menu.insert_before(ADD_USER, separator)
+        
         self.read_user_config()
         selected_user_emails = self.get_current_user()
         
@@ -64,8 +71,9 @@ class GitAuthorSwitcher(rumps.App):
         new_menu_item = self.create_menu_item(user_config)
         if not new_menu_item is None:
             new_menu_item.state = int(is_selected)
-            self.menu.insert_before("Add User", new_menu_item)
-            self.set_title_username(user_config['title'])
+            self.menu.insert_before(SEPARATOR, new_menu_item)
+            if is_selected:
+                self.set_title_username(user_config['title'])
 
     def add_user_config(self, title, username, email):
         user_config = {
@@ -88,7 +96,7 @@ class GitAuthorSwitcher(rumps.App):
         email = user_config["email"]
         return self.is_not_empty(buttonName) and self.is_not_empty(userName) and self.is_not_empty(email)
 
-    @rumps.clicked("Add User")
+    @rumps.clicked(ADD_USER)
     def addUser(self, sender):
         self.disableAll()
         window = rumps.Window('Enter button name, username and email.\nEach must be on a new line', 'Add User', "", "Next", True)
@@ -103,6 +111,7 @@ class GitAuthorSwitcher(rumps.App):
             return None
 
         self.add_new_user_to_menu(user_config)
+        self.menu.insert_before(SEPARATOR, new_menu_item)
 
 
     def is_not_empty(self, string):
