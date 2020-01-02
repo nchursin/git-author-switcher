@@ -10,6 +10,17 @@ CONFIG_FILE_NAME = "userConfig.json"
 ADD_USER = "Add User"
 SEPARATOR = "----"
 
+def cmd_exec(cmd):
+    os.system(cmd)
+
+def change_username(username):
+    cmd = 'git config --global user.name "{}"'.format(username)
+    cmd_exec(cmd)
+
+def change_user_email(email):
+    cmd = 'git config --global user.email "{}"'.format(email)
+    cmd_exec(cmd)
+    
 class GitAuthorSwitcher(rumps.App):
     all_emails = []
     selected_emails = []
@@ -22,18 +33,16 @@ class GitAuthorSwitcher(rumps.App):
     def form_menu(self):
         self.menu = [ADD_USER]
         separator = rumps.MenuItem(SEPARATOR)
-        separator.state = -1
         self.menu.insert_before(ADD_USER, separator)
         
         self.read_user_config()
         selected_user_emails = self.get_current_user()
         
-        self.build_menu(selected_user_emails)
+        self.build_user_menu()
             
-    def build_menu(self, selected_emails):
+    def build_user_menu(self):
         for user_config in self.user_data:
-            is_selected = user_config['email'] in selected_emails
-            self.add_new_user_to_menu(user_config, is_selected)
+            self.add_new_user_to_menu(user_config)
     
     def read_user_config(self):
         try:
@@ -42,7 +51,7 @@ class GitAuthorSwitcher(rumps.App):
                 for user_config in self.user_data:
                     self.all_emails.append(user_config['email'])
         except IOError:
-            print("File not accessible")
+            rumps.alert(CONFIG_FILE_NAME + " is not found in Resources folder. Make sure you have one there")
             
     def get_current_user(self): 
         current_git_useremail = Popen(["git", "config", "--global", "user.email"], stdout=PIPE).communicate()[0].strip().decode("utf-8")
@@ -62,17 +71,19 @@ class GitAuthorSwitcher(rumps.App):
         buttonName = user_config["title"]
         userName = user_config["username"]
         email = user_config["email"]
+        
+        is_selected = email in self.selected_emails
 
-        user_selector = self.select_user_dec(userName, email)
-        newMenuItem = rumps.MenuItem(buttonName, callback=user_selector)
-        return newMenuItem
+        new_menu_item = rumps.MenuItem(buttonName, self.create_user_btn_callback())
+        new_menu_item.state = int(is_selected)
 
-    def add_new_user_to_menu(self, user_config, is_selected):
+        return new_menu_item
+
+    def add_new_user_to_menu(self, user_config):
         new_menu_item = self.create_menu_item(user_config)
         if not new_menu_item is None:
-            new_menu_item.state = int(is_selected)
             self.menu.insert_before(SEPARATOR, new_menu_item)
-            if is_selected:
+            if new_menu_item.state:
                 self.set_title_username(user_config['title'])
 
     def add_user_config(self, title, username, email):
@@ -98,10 +109,9 @@ class GitAuthorSwitcher(rumps.App):
 
     @rumps.clicked(ADD_USER)
     def addUser(self, sender):
-        self.disableAll()
+        self.disable_all()
         window = rumps.Window('Enter button name, username and email.\nEach must be on a new line', 'Add User', "", "Next", True)
         response = window.run()
-        print(response)
         if not response.clicked:
             return
 
@@ -110,9 +120,40 @@ class GitAuthorSwitcher(rumps.App):
         if user_config is None:
             return None
 
-        self.add_new_user_to_menu(user_config)
+        new_menu_item = self.add_new_user_to_menu(user_config)
         self.menu.insert_before(SEPARATOR, new_menu_item)
-
+        
+    def create_user_btn_callback(self):
+        that = self
+        def callback(self):
+            self.state = not self.state
+            that.switch_users()
+        return callback
+    
+    def switch_users(self):
+        # TODO: change user config file format to return dic, instead of list
+        usernames = []
+        emails = []
+        titles = []
+        selected_item_titles = list(map(
+            lambda menu_item: menu_item.title,
+            filter(
+                lambda menu_item: bool(menu_item.state),
+                self.menu.values()
+            )
+        ))
+        for user in self.user_data:
+            if user['title'] in selected_item_titles:
+                usernames.append(user['username'])
+                emails.append(user['email'])
+                titles.append(user['title'])
+        change_username(', '.join(usernames))
+        change_user_email(', '.join(emails))
+        if len(usernames):
+            self.set_title_username(', '.join(titles))
+        else:
+            self.set_title_username('none selected')
+            
 
     def is_not_empty(self, string):
         return bool(string.strip())
@@ -120,18 +161,7 @@ class GitAuthorSwitcher(rumps.App):
     def set_title_username(self, username): 
         self.title = 'Git: ' + username
 
-    def select_user_dec(self, username, email):
-        that = self
-        def user_selector(self):
-            that.set_title_username(username)
-            userChangeCmd = 'git config --global user.name "{}"'.format(username)
-            emailChangeCmd = 'git config --global user.email "{}"'.format(email)
-            os.system(userChangeCmd)
-            os.system(emailChangeCmd)
-        return user_selector
-
-    def disableAll(self):
-        print(self.menu.values)
+    def disable_all(self):
         for item in self.menu.values():
             item.state = 0
 
