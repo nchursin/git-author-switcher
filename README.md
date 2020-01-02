@@ -12,4 +12,6 @@ Launch the app and click "Add User" in the app menu. This will open a window for
 
 Please note that the app supports several users to be active for pair programming cases.
 
-Currently there's no user deletion capability. To delete user you need to go to the `app/Resources` and remove user from `userConfig.json` file
+Currently there's no user deletion capability. To delete user you need to go to the `app/Resources` and remove user from `userConfig.json` file.
+
+Thanks Codeborne guys for the idea.
